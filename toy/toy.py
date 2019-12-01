@@ -9,7 +9,6 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv1D, MaxPooling1D, Flatten, Dense, AveragePooling1D, BatchNormalization, Activation, LSTM, Dropout, concatenate
 from tensorflow import keras
 
-
 register_matplotlib_converters()
 
 endpoint = 'https://min-api.cryptocompare.com/data/histoday'
@@ -106,7 +105,6 @@ def build_lstm_model_ver1(input_data, output_size, neurons=20,
                      loss='mae', optimizer='adam'):
     model = Sequential()
     model.add(LSTM(neurons, input_shape=(input_data.shape[1], input_data.shape[2])))
-    sys.exit()
     model.add(Dropout(dropout))
     model.add(Dense(units=output_size))
     model.add(Activation(activ_func))
@@ -115,27 +113,44 @@ def build_lstm_model_ver1(input_data, output_size, neurons=20,
 
 input_data = hist
 
-first_input = keras.Input(shape=(7,2), name = 'first')
-second_input = keras.Input(shape=(7,2), name = 'second')
-first = LSTM(20)(first_input)
-second = LSTM(20)(second_input)
-x = concatenate([first, second])
-#x = Dropout(0.25)(x)
-output1 = Dense(1, activation='linear')(x)
-output2 = Dense(1, activation='linear')(x)
+def create_model():
+    first_input = keras.Input(shape=(7,2), name = 'first_input')
+    second_input = keras.Input(shape=(7,2), name = 'second_input')
 
-model = keras.Model(inputs=[first_input, second_input], outputs=[output1, output2], name='crypto_model')
-#print model summary
-model.summary()
+    first_layer = LSTM(20)
+    #first_layer = Conv1D(filters=30, kernel_size=2, data_format='channels_last', input_shape=(7,2))
 
-model.compile(optimizer='adam', loss=['mae', 'mae'], loss_weights=[1, 1])
+    first = first_layer(first_input)
+    second = first_layer(second_input)
+    x = concatenate([first, second])
+    #x = Dropout(0.25)(x)
+    output1 = Dense(1, activation='linear', name = 'output1')(x)
+    output2 = Dense(1, activation='linear', name = 'output2')(x)
+
+    model = keras.Model(inputs=[first_input, second_input], outputs=[output1, output2])
+    #print model summary
+    model.summary()
+
+    #plot the models
+    #keras.utils.plot_model(model, 'multi_input_and_output_model.png', show_shapes=True)
+
+    # for single outputs
+    #model.compile(loss='mae', optimizer='adam')
+    # for two outputs
+    model.compile(optimizer='adam', loss={'output1': 'mae', 'output2': 'mae'}, loss_weight=[1., 0.2])
+
+    return model
+
+
+model = create_model()
 
 x1_train = X_train[:,:,[0,3]]
 x2_train = X_train[:,:,[1,2]]
 x1_test = X_test[:,:,[0,3]]
 x2_test = X_test[:,:,[1,2]]
 
-model.fit({'first': x1_train, 'second': x2_train}, {'output1': y_train_low,'output2': y_train_high}, epochs=10, batch_size=4, validation_split=0.1)
+#history = model.fit({'first_input': x1_train, 'second_input': x2_train}, y_train_low, epochs=10, batch_size=4, validation_split=0.1)
+model.fit({'first_input': x1_train, 'second_input': x2_train}, {'output1': y_train_low,'output2': y_train_high}, epochs=10, batch_size=4, validation_split=0.1)
 sys.exit()
 history2 = model.evaluate({'first': x1_test, 'second': x2_test}, {'output1': y_test_low,'output2': y_test_high})
 pred = model.predict({'forward': x1_test, 'backward': x2_test})

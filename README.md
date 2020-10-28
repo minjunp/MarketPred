@@ -1,8 +1,12 @@
 # Predicting stock price movement
 Our pipeline uses Long short-term memory (LSTM) deep learning pipeline to predict stock price movement
-You can find our final report and proposal for this project in:
+You can find our final report:
 ```
-Final-Report.pdf & Proposal.pdf
+Final-Report.pdf
+```
+and proposal for this project:
+```
+Proposal.pdf
 ```
 
 ## Repository Structure
